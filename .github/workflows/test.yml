@@ -44,11 +44,14 @@ jobs:
           $user = Get-LocalUser -Name (([System.Environment]::UserName))
           $user | Set-LocalUser -Password $pass
           New-Item -Force -ItemType Directory -Path $env:UserProfile\.ssh | Out-Null
+          $repoKeyPath = Join-Path $env:GITHUB_WORKSPACE 'id_sftpretty'
           $sshKeyPath = Join-Path $env:UserProfile '.ssh/id_sftpretty'
           Remove-Item $sshKeyPath -Force -ErrorAction SilentlyContinue
           Remove-Item "$sshKeyPath.pub" -Force -ErrorAction SilentlyContinue
-          ssh-keygen -t rsa -b 4096 -N "" -f $sshKeyPath -q -C "ci"
-          $authorizedKey = Get-Content -Path "$sshKeyPath.pub"
+          ssh-keygen -t rsa -b 4096 -N "" -f $repoKeyPath -q -C "ci"
+          Copy-Item $repoKeyPath -Destination $sshKeyPath -Force
+          Copy-Item "$repoKeyPath.pub" -Destination "$sshKeyPath.pub" -Force
+          $authorizedKey = Get-Content -Path "$repoKeyPath.pub"
           Add-Content -Force -Path $env:UserProfile\.ssh\authorized_keys -Value $authorizedKey
           Add-Content -Force -Path $env:ProgramData\ssh\administrators_authorized_keys -Value $authorizedKey
           New-Variable -Name Key -Value $sshKeyPath
@@ -69,14 +72,19 @@ jobs:
           }
       - name: Authorize Key
         run: |
-          mkdir -p "$HOME/.ssh"
-          chmod 0700 "$HOME/.ssh"
-          touch "$HOME/.ssh/authorized_keys"
-          rm -f "$HOME/.ssh/id_sftpretty" "$HOME/.ssh/id_sftpretty.pub"
-          ssh-keygen -t rsa -b 4096 -N "" -f "$HOME/.ssh/id_sftpretty" -q -C "ci"
-          chmod 0600 "$HOME/.ssh/id_sftpretty"
-          chmod 0600 "$HOME/.ssh/authorized_keys"
-          cat "$HOME/.ssh/id_sftpretty.pub" >> "$HOME/.ssh/authorized_keys"
+          set -euo pipefail
+          repo_key="$GITHUB_WORKSPACE/id_sftpretty"
+          ssh_dir="$HOME/.ssh"
+          mkdir -p "$ssh_dir"
+          chmod 0700 "$ssh_dir"
+          touch "$ssh_dir/authorized_keys"
+          ssh-keygen -t rsa -b 4096 -N "" -f "$repo_key" -q -C "ci"
+          cp "$repo_key" "$ssh_dir/id_sftpretty"
+          cp "$repo_key.pub" "$ssh_dir/id_sftpretty.pub"
+          chmod 0600 "$repo_key"
+          chmod 0600 "$ssh_dir/id_sftpretty"
+          chmod 0600 "$ssh_dir/authorized_keys"
+          cat "$ssh_dir/id_sftpretty.pub" >> "$ssh_dir/authorized_keys"
         shell: bash
       - name: Dependencies
         run: |

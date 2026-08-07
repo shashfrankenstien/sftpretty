@@ -97,8 +97,8 @@ def test_connection_bad_host():
 def test_connection_good(sftpserver):
     '''connect to a public sftp server'''
     with sftpserver.serve_content(VFS):
-        sftp = Connection(**conn(sftpserver))
-        sftp.close()
+        with Connection(**conn(sftpserver)) as sftp:
+            sftp.listdir()
 
 
 def test_connection_with(sftpserver):
