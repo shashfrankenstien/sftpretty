@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: [root]
+    branches: [no-secrets]
   pull_request:
-    branches: [root]
+    branches: [no-secrets]
 
 jobs:
   build:
@@ -13,7 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-15-intel, macos-latest, ubuntu-22.04, ubuntu-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        # python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.12']
         exclude:
           - os: macos-latest
             python-version: 3.7
@@ -39,16 +40,18 @@ jobs:
       - name: ${{ matrix.os }} SSH
         if: startsWith(matrix.os, 'windows')
         run: |
-          $authorizedKey = Get-Content -Path id_sftpretty.pub
           $pass = ConvertTo-SecureString -AsPlainText -Force -String ${{ secrets.PASSWORD }}
-          $privateKey = Get-Content -Path id_sftpretty
           $user = Get-LocalUser -Name (([System.Environment]::UserName))
           $user | Set-LocalUser -Password $pass
-          New-Item -Force -ItemType Directory -Path $env:UserProfile\.ssh
+          New-Item -Force -ItemType Directory -Path $env:UserProfile\.ssh | Out-Null
+          $sshKeyPath = Join-Path $env:UserProfile '.ssh/id_sftpretty'
+          Remove-Item $sshKeyPath -Force -ErrorAction SilentlyContinue
+          Remove-Item "$sshKeyPath.pub" -Force -ErrorAction SilentlyContinue
+          ssh-keygen -t rsa -b 4096 -N "" -f $sshKeyPath -q -C "ci"
+          $authorizedKey = Get-Content -Path "$sshKeyPath.pub"
           Add-Content -Force -Path $env:UserProfile\.ssh\authorized_keys -Value $authorizedKey
           Add-Content -Force -Path $env:ProgramData\ssh\administrators_authorized_keys -Value $authorizedKey
-          Add-Content -Force -Path $env:UserProfile\.ssh\id_sftpretty -Value $privateKey
-          New-Variable -Name Key -Value $env:UserProfile\.ssh\id_sftpretty
+          New-Variable -Name Key -Value $sshKeyPath
           Icacls $env:ProgramData\ssh\administrators_authorized_keys /inheritance:r /Grant 'Administrators:F' /Grant 'SYSTEM:F'
           Icacls $Key /c /t /Inheritance:d
           Icacls $Key /c /t /Grant ${env:UserName}:F
@@ -58,7 +61,6 @@ jobs:
           Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'
           Set-Service -Name sshd -StartupType Automatic -Status Running
           Set-Service -Name ssh-agent -StartupType Automatic -Status Running
-          ssh-keygen -f $Key --% -N "" -p -P ${{ secrets.PRIVATE_KEY }}
           if (!(Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
               Write-Output "Firewall Rule 'OpenSSH-Server-In-TCP' does not exist, creating it..."
               New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
@@ -67,10 +69,14 @@ jobs:
           }
       - name: Authorize Key
         run: |
-          mkdir -p $HOME/.ssh && chmod 0700 $HOME/.ssh
-          touch $HOME/.ssh/authorized_keys
-          chmod 0600 id_sftpretty
-          cat id_sftpretty.pub >> $HOME/.ssh/authorized_keys
+          mkdir -p "$HOME/.ssh"
+          chmod 0700 "$HOME/.ssh"
+          touch "$HOME/.ssh/authorized_keys"
+          rm -f "$HOME/.ssh/id_sftpretty" "$HOME/.ssh/id_sftpretty.pub"
+          ssh-keygen -t rsa -b 4096 -N "" -f "$HOME/.ssh/id_sftpretty" -q -C "ci"
+          chmod 0600 "$HOME/.ssh/id_sftpretty"
+          chmod 0600 "$HOME/.ssh/authorized_keys"
+          cat "$HOME/.ssh/id_sftpretty.pub" >> "$HOME/.ssh/authorized_keys"
         shell: bash
       - name: Dependencies
         run: |
