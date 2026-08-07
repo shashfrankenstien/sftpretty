@@ -48,7 +48,7 @@ jobs:
           $sshKeyPath = Join-Path $env:UserProfile '.ssh/id_sftpretty'
           Remove-Item $sshKeyPath -Force -ErrorAction SilentlyContinue
           Remove-Item "$sshKeyPath.pub" -Force -ErrorAction SilentlyContinue
-          ssh-keygen -t rsa -b 4096 -N "" -f $repoKeyPath -q -C "ci"
+          ssh-keygen -t rsa -b 4096 -N "tEst@!357" -f $repoKeyPath -q -C "ci"
           Copy-Item $repoKeyPath -Destination $sshKeyPath -Force
           Copy-Item "$repoKeyPath.pub" -Destination "$sshKeyPath.pub" -Force
           $authorizedKey = Get-Content -Path "$repoKeyPath.pub"
@@ -78,7 +78,7 @@ jobs:
           mkdir -p "$ssh_dir"
           chmod 0700 "$ssh_dir"
           touch "$ssh_dir/authorized_keys"
-          ssh-keygen -t rsa -b 4096 -N "" -f "$repo_key" -q -C "ci"
+          ssh-keygen -t rsa -b 4096 -N "tEst@!357" -f "$repo_key" -q -C "ci"
           cp "$repo_key" "$ssh_dir/id_sftpretty"
           cp "$repo_key.pub" "$ssh_dir/id_sftpretty.pub"
           chmod 0600 "$repo_key"
