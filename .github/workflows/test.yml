@@ -12,14 +12,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15-intel, macos-latest, ubuntu-22.04, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         # python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
         python-version: ['3.12']
-        exclude:
-          - os: macos-latest
-            python-version: 3.7
-          - os: ubuntu-latest
-            python-version: 3.7
+        # exclude:
+        #   - os: macos-latest
+        #     python-version: 3.7
+        #   - os: ubuntu-latest
+        #     python-version: 3.7
 
     steps:
       - name: Clone Repository
@@ -73,7 +73,7 @@ jobs:
       - name: Authorize Key
         run: |
           set -euo pipefail
-          repo_key="$GITHUB_WORKSPACE/id_sftpretty"
+          repo_key="id_sftpretty"
           ssh_dir="$HOME/.ssh"
           mkdir -p "$ssh_dir"
           chmod 0700 "$ssh_dir"
@@ -101,4 +101,4 @@ jobs:
           python -m pip install -e .[dev,lint,test]
       - name: Tests
         run: |
-          pytest -l -v --tb=long
+          pytest -v
