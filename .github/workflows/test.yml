@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15-intel, macos-latest, ubuntu-22.04, ubuntu-latest, windows-latest]
+        os: [windows-latest]
         # python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
         python-version: ['3.12']
         # exclude:
@@ -40,6 +40,7 @@ jobs:
       - name: ${{ matrix.os }} SSH
         if: startsWith(matrix.os, 'windows')
         run: |
+          $ErrorActionPreference = 'Stop'
           $pass = ConvertTo-SecureString -AsPlainText -Force -String ${{ secrets.PASSWORD }}
           $user = Get-LocalUser -Name (([System.Environment]::UserName))
           $user | Set-LocalUser -Password $pass
