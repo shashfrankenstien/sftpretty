@@ -73,6 +73,7 @@ jobs:
               exit 0
           }
       - name: Authorize Key
+        if: ${{ !startsWith(matrix.os, 'windows') }}
         run: |
           set -euo pipefail
           repo_key="id_sftpretty"
