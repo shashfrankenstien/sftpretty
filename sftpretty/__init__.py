@@ -452,7 +452,8 @@ class Connection(object):
             compression = self._cnopts.compression
             if bool(compress) and compression != ('none',):
                 self._transport.get_security_options().compression = compression
-            log.debug(f'Compression: [{self._transport.get_security_options().compression}]')
+            compression = self._transport.get_security_options().compression
+            log.debug(f'Compression: [{compression}]')
             # Set connection digests
             digests = self._config.get('macs') or self._cnopts.digests
             _digests = self._transport.get_security_options().digests
